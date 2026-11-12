@@ -101,6 +101,23 @@ bool svga_init(VideoOptions* video_options)
         // (scaled by the renderer's logical size) lets other apps come to
         // front while the game stays in the background.
         windowFlags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
+
+        // CE: The game is scaled to the display, so make the most of it by
+        // extending configured resolution to match display's aspect ratio
+        // (widescreen). Otherwise there would be black bars on the sides.
+        SDL_DisplayMode displayMode;
+        if (SDL_GetDesktopDisplayMode(0, &displayMode) == 0
+            && displayMode.w > 0
+            && displayMode.h > 0) {
+            int width = video_options->width;
+            int height = video_options->height;
+            if (displayMode.w * height > width * displayMode.h) {
+                // Round to the nearest even number.
+                video_options->width = (height * displayMode.w / displayMode.h + 1) & ~1;
+            } else {
+                video_options->height = (width * displayMode.h / displayMode.w + 1) & ~1;
+            }
+        }
 #else
         windowFlags |= SDL_WINDOW_FULLSCREEN;
 #endif
