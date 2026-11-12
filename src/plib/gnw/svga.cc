@@ -106,7 +106,8 @@ bool svga_init(VideoOptions* video_options)
         // extending configured resolution to match display's aspect ratio
         // (widescreen). Otherwise there would be black bars on the sides.
         SDL_DisplayMode displayMode;
-        if (SDL_GetDesktopDisplayMode(0, &displayMode) == 0
+        if (video_options->widescreen
+            && SDL_GetDesktopDisplayMode(0, &displayMode) == 0
             && displayMode.w > 0
             && displayMode.h > 0) {
             int width = video_options->width;

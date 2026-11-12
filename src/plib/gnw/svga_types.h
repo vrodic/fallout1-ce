@@ -19,6 +19,8 @@ typedef struct VideoOptions {
     int height;
     bool fullscreen;
     int scale;
+    // CE: In fullscreen, extend resolution to match display's aspect ratio.
+    bool widescreen;
 } VideoOptions;
 
 } // namespace fallout
