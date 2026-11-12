@@ -36,6 +36,22 @@ static Touch touches[MAX_TOUCHES];
 static Gesture currentGesture;
 static std::stack<Gesture> gestureEventsQueue;
 
+// CE: Touch coordinates are normalized to what is presented, which might be
+// only a part of the screen (see `svga_set_viewport`).
+static int touch_screen_x(float x)
+{
+    Rect viewport;
+    svga_get_viewport(&viewport);
+    return viewport.ulx + static_cast<int>(x * rectGetWidth(&viewport));
+}
+
+static int touch_screen_y(float y)
+{
+    Rect viewport;
+    svga_get_viewport(&viewport);
+    return viewport.uly + static_cast<int>(y * rectGetHeight(&viewport));
+}
+
 static int find_touch(SDL_FingerID fingerId)
 {
     for (int index = 0; index < MAX_TOUCHES; index++) {
@@ -99,8 +115,8 @@ void touch_handle_start(SDL_TouchFingerEvent* event)
         touch->used = true;
         touch->fingerId = event->fingerId;
         touch->startTimestamp = event->timestamp;
-        touch->startLocation.x = static_cast<int>(event->x * screenGetWidth());
-        touch->startLocation.y = static_cast<int>(event->y * screenGetHeight());
+        touch->startLocation.x = touch_screen_x(event->x);
+        touch->startLocation.y = touch_screen_y(event->y);
         touch->currentTimestamp = touch->startTimestamp;
         touch->currentLocation = touch->startLocation;
         touch->phase = TOUCH_PHASE_BEGAN;
@@ -113,8 +129,8 @@ void touch_handle_move(SDL_TouchFingerEvent* event)
     if (index != -1) {
         Touch* touch = &(touches[index]);
         touch->currentTimestamp = event->timestamp;
-        touch->currentLocation.x = static_cast<int>(event->x * screenGetWidth());
-        touch->currentLocation.y = static_cast<int>(event->y * screenGetHeight());
+        touch->currentLocation.x = touch_screen_x(event->x);
+        touch->currentLocation.y = touch_screen_y(event->y);
         touch->phase = TOUCH_PHASE_MOVED;
     }
 }
@@ -125,8 +141,8 @@ void touch_handle_end(SDL_TouchFingerEvent* event)
     if (index != -1) {
         Touch* touch = &(touches[index]);
         touch->currentTimestamp = event->timestamp;
-        touch->currentLocation.x = static_cast<int>(event->x * screenGetWidth());
-        touch->currentLocation.y = static_cast<int>(event->y * screenGetHeight());
+        touch->currentLocation.x = touch_screen_x(event->x);
+        touch->currentLocation.y = touch_screen_y(event->y);
         touch->phase = TOUCH_PHASE_ENDED;
     }
 }

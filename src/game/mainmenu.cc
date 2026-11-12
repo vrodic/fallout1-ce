@@ -244,6 +244,10 @@ void main_menu_destroy()
         win_delete(main_window);
     }
 
+    if (!main_menu_is_hidden) {
+        svga_set_viewport(NULL);
+    }
+
     main_menu_created = false;
 }
 
@@ -267,6 +271,8 @@ void main_menu_hide(bool animate)
 
     win_hide(main_window);
 
+    svga_set_viewport(NULL);
+
     main_menu_is_hidden = true;
 }
 
@@ -280,6 +286,11 @@ void main_menu_show(bool animate)
     if (!main_menu_is_hidden) {
         return;
     }
+
+    // CE: Scale main menu to fill the display.
+    Rect mainMenuViewport;
+    win_get_rect(main_window, &mainMenuViewport);
+    svga_set_viewport(&mainMenuViewport);
 
     win_show(main_window);
 

@@ -30,6 +30,13 @@ int screenGetHeight();
 void handleWindowSizeChanged();
 void renderPresent();
 
+// CE: Restricts presentation to the given part of the screen, scaled up to
+// fill the display. Used for fixed-size 640x480 screens (movies, main menu)
+// when the game runs at a higher resolution. Pass `NULL` to show the whole
+// screen again.
+void svga_set_viewport(const Rect* rect);
+void svga_get_viewport(Rect* rect);
+
 } // namespace fallout
 
 #endif /* FALLOUT_PLIB_GNW_SVGA_H_ */

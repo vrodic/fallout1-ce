@@ -39,6 +39,11 @@ void initMovie();
 void movieClose();
 void movieStop();
 int movieSetFlags(int a1);
+
+// CE: When enabled, directly rendered movies are presented zoomed in to the
+// movie frame (see `svga_set_viewport`). The caller is responsible for
+// restoring the viewport afterwards.
+void movieSetZoomToFrame(bool enabled);
 void movieSetSubtitleFont(int font);
 void movieSetSubtitleColor(float r, float g, float b);
 void movieSetPaletteFunc(MoviePaletteFunc* func);

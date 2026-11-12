@@ -13,6 +13,9 @@ static void destroyRenderer();
 // screen rect
 Rect scr_size;
 
+// CE: Part of the screen being presented, see `svga_set_viewport`.
+static Rect viewport;
+
 // 0x6ACA18
 ScreenBlitFunc* scr_blit = GNW95_ShowRect;
 
@@ -91,7 +94,16 @@ bool svga_init(VideoOptions* video_options)
     Uint32 windowFlags = SDL_WINDOW_OPENGL | SDL_WINDOW_ALLOW_HIGHDPI;
 
     if (video_options->fullscreen) {
+#ifdef __MACOSX__
+        // CE: Exclusive fullscreen switches the display mode and pins the
+        // window above everything else, which gets in the way of switching to
+        // other apps (Cmd+Tab). Borderless fullscreen at desktop resolution
+        // (scaled by the renderer's logical size) lets other apps come to
+        // front while the game stays in the background.
+        windowFlags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
+#else
         windowFlags |= SDL_WINDOW_FULLSCREEN;
+#endif
     }
 
     gSdlWindow = SDL_CreateWindow(GNW95_title, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
@@ -140,6 +152,7 @@ bool svga_init(VideoOptions* video_options)
     scr_size.uly = 0;
     scr_size.lrx = video_options->width - 1;
     scr_size.lry = video_options->height - 1;
+    viewport = scr_size;
 
     mouse_blit_trans = NULL;
     scr_blit = GNW95_ShowRect;
@@ -223,14 +236,61 @@ void handleWindowSizeChanged()
 {
     destroyRenderer();
     createRenderer(screenGetWidth(), screenGetHeight());
+    SDL_RenderSetLogicalSize(gSdlRenderer, rectGetWidth(&viewport), rectGetHeight(&viewport));
 }
 
 void renderPresent()
 {
     SDL_UpdateTexture(gSdlTexture, NULL, gSdlTextureSurface->pixels, gSdlTextureSurface->pitch);
     SDL_RenderClear(gSdlRenderer);
-    SDL_RenderCopy(gSdlRenderer, gSdlTexture, NULL, NULL);
+
+    SDL_Rect srcRect;
+    srcRect.x = viewport.ulx;
+    srcRect.y = viewport.uly;
+    srcRect.w = rectGetWidth(&viewport);
+    srcRect.h = rectGetHeight(&viewport);
+    SDL_RenderCopy(gSdlRenderer, gSdlTexture, &srcRect, NULL);
     SDL_RenderPresent(gSdlRenderer);
+}
+
+void svga_set_viewport(const Rect* rect)
+{
+    Rect newViewport = scr_size;
+    if (rect != NULL) {
+        // Ignore anything that does not fit the screen.
+        if (rect->ulx >= scr_size.ulx
+            && rect->uly >= scr_size.uly
+            && rect->lrx <= scr_size.lrx
+            && rect->lry <= scr_size.lry
+            && rect->lrx > rect->ulx
+            && rect->lry > rect->uly) {
+            newViewport = *rect;
+        }
+    }
+
+    if (newViewport.ulx == viewport.ulx
+        && newViewport.uly == viewport.uly
+        && newViewport.lrx == viewport.lrx
+        && newViewport.lry == viewport.lry) {
+        return;
+    }
+
+    viewport = newViewport;
+
+    if (gSdlRenderer != NULL) {
+        SDL_RenderSetLogicalSize(gSdlRenderer, rectGetWidth(&viewport), rectGetHeight(&viewport));
+    }
+
+    // Keep the cursor inside the visible area.
+    int mouseX;
+    int mouseY;
+    mouse_get_position(&mouseX, &mouseY);
+    mouse_set_position(mouseX, mouseY);
+}
+
+void svga_get_viewport(Rect* rect)
+{
+    *rect = viewport;
 }
 
 } // namespace fallout

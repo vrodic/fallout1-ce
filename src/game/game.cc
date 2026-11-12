@@ -1319,6 +1319,16 @@ static void game_splash_screen()
 
     int splashWindowX = (screenGetWidth() - SPLASH_WIDTH) / 2;
     int splashWindowY = (screenGetHeight() - SPLASH_HEIGHT) / 2;
+
+    // CE: Scale splash screen to fill the display. The viewport is taken over
+    // by the intro movies and the main menu that follow.
+    Rect splashViewport;
+    splashViewport.ulx = splashWindowX;
+    splashViewport.uly = splashWindowY;
+    splashViewport.lrx = splashWindowX + SPLASH_WIDTH - 1;
+    splashViewport.lry = splashWindowY + SPLASH_HEIGHT - 1;
+    svga_set_viewport(&splashViewport);
+
     scr_blit(data, SPLASH_WIDTH, SPLASH_HEIGHT, 0, 0, SPLASH_WIDTH, SPLASH_HEIGHT, splashWindowX, splashWindowY);
     palette_fade_to(palette);
 

@@ -246,6 +246,14 @@ static bool movieRead(void* handle, void* buf, int count)
     return db_fread(buf, 1, count, reinterpret_cast<DB_FILE*>(handle)) == count;
 }
 
+// CE: See `movieSetZoomToFrame`.
+static bool movieZoomToFrame = false;
+
+void movieSetZoomToFrame(bool enabled)
+{
+    movieZoomToFrame = enabled;
+}
+
 // 0x478464
 static void movie_MVE_ShowFrame(SDL_Surface* surface, int srcWidth, int srcHeight, int srcX, int srcY, int destWidth, int destHeight, int a8, int a9)
 {
@@ -311,6 +319,17 @@ static void movie_MVE_ShowFrame(SDL_Surface* surface, int srcWidth, int srcHeigh
                 destRect.h);
             SDL_UnlockSurface(surface);
         }
+    }
+
+    // CE: Movie frames are smaller than the movie window, zoom in to the frame
+    // itself.
+    if (movieZoomToFrame) {
+        Rect frameRect;
+        frameRect.ulx = destRect.x;
+        frameRect.uly = destRect.y;
+        frameRect.lrx = destRect.x + srcWidth - 1;
+        frameRect.lry = destRect.y + srcHeight - 1;
+        svga_set_viewport(&frameRect);
     }
 
     SDL_SetSurfacePalette(surface, gSdlSurface->format->palette);

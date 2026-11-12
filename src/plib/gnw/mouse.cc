@@ -690,16 +690,20 @@ void mouse_set_position(int x, int y)
 // 0x4B52C0
 static void mouse_clip()
 {
-    if (mouse_hotx + mouse_x < scr_size.ulx) {
-        mouse_x = scr_size.ulx - mouse_hotx;
-    } else if (mouse_hotx + mouse_x > scr_size.lrx) {
-        mouse_x = scr_size.lrx - mouse_hotx;
+    // CE: Limit the cursor to the visible part of the screen.
+    Rect bounds;
+    svga_get_viewport(&bounds);
+
+    if (mouse_hotx + mouse_x < bounds.ulx) {
+        mouse_x = bounds.ulx - mouse_hotx;
+    } else if (mouse_hotx + mouse_x > bounds.lrx) {
+        mouse_x = bounds.lrx - mouse_hotx;
     }
 
-    if (mouse_hoty + mouse_y < scr_size.uly) {
-        mouse_y = scr_size.uly - mouse_hoty;
-    } else if (mouse_hoty + mouse_y > scr_size.lry) {
-        mouse_y = scr_size.lry - mouse_hoty;
+    if (mouse_hoty + mouse_y < bounds.uly) {
+        mouse_y = bounds.uly - mouse_hoty;
+    } else if (mouse_hoty + mouse_y > bounds.lry) {
+        mouse_y = bounds.lry - mouse_hoty;
     }
 }
 

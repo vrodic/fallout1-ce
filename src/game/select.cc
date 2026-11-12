@@ -322,6 +322,11 @@ bool select_init()
         return select_fatal_error(false);
     }
 
+    // CE: Scale character selector to fill the display.
+    Rect selectViewport;
+    win_get_rect(select_window_id, &selectViewport);
+    svga_set_viewport(&selectViewport);
+
     select_window_buffer = win_get_buf(select_window_id);
     if (select_window_buffer == NULL) {
         return select_fatal_error(false);
@@ -674,6 +679,8 @@ static void select_exit()
 
     win_delete(select_window_id);
     select_window_id = -1;
+
+    svga_set_viewport(NULL);
 }
 
 // 0x495DE8

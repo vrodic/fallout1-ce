@@ -129,6 +129,14 @@ int gmovie_play(int game_movie, int game_movie_flags)
         return -1;
     }
 
+    // CE: Scale movie to fill the display.
+    Rect oldViewport;
+    svga_get_viewport(&oldViewport);
+
+    Rect movieViewport;
+    win_get_rect(win, &movieViewport);
+    svga_set_viewport(&movieViewport);
+
     if ((game_movie_flags & GAME_MOVIE_STOP_MUSIC) != 0) {
         gsound_background_stop();
     } else if ((game_movie_flags & GAME_MOVIE_PAUSE_MUSIC) != 0) {
@@ -185,6 +193,10 @@ int gmovie_play(int game_movie, int game_movie_flags)
 
     moviefx_start(movieFilePath);
 
+    // CE: Movie frames are smaller than the movie window. Zoom in to the frame
+    // unless there are subtitles, which are rendered below it.
+    movieSetZoomToFrame(!subtitlesEnabled);
+
     movieRun(win, movieFilePath);
 
     int v11 = 0;
@@ -209,6 +221,7 @@ int gmovie_play(int game_movie, int game_movie_flags)
     movieStop();
     moviefx_stop();
     movieUpdate();
+    movieSetZoomToFrame(false);
     palette_set_to(black_palette);
 
     gmovie_played_list[game_movie] = 1;
@@ -233,6 +246,8 @@ int gmovie_play(int game_movie, int game_movie_flags)
     }
 
     win_delete(win);
+
+    svga_set_viewport(&oldViewport);
 
     // CE: Destroying a window redraws only content it was covering (centered
     // 640x480). This leads to everything outside this rect to remain black.
