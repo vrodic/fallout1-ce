@@ -9,6 +9,7 @@ namespace fallout {
 
 static bool createRenderer(int width, int height);
 static void destroyRenderer();
+static SDL_Texture* getScaledTexture(int width, int height);
 
 // screen rect
 Rect scr_size;
@@ -24,6 +25,11 @@ SDL_Surface* gSdlSurface = NULL;
 SDL_Renderer* gSdlRenderer = NULL;
 SDL_Texture* gSdlTexture = NULL;
 SDL_Surface* gSdlTextureSurface = NULL;
+
+// CE: Intermediate render target for sharp scaling, see `renderPresent`.
+static SDL_Texture* gSdlScaledTexture = NULL;
+static int gSdlScaledTextureWidth = 0;
+static int gSdlScaledTextureHeight = 0;
 
 // TODO: Remove once migration to update-render cycle is completed.
 FpsLimiter sharedFpsLimiter;
@@ -239,6 +245,11 @@ static void destroyRenderer()
         gSdlTextureSurface = NULL;
     }
 
+    if (gSdlScaledTexture != NULL) {
+        SDL_DestroyTexture(gSdlScaledTexture);
+        gSdlScaledTexture = NULL;
+    }
+
     if (gSdlTexture != NULL) {
         SDL_DestroyTexture(gSdlTexture);
         gSdlTexture = NULL;
@@ -267,8 +278,79 @@ void renderPresent()
     srcRect.y = viewport.uly;
     srcRect.w = rectGetWidth(&viewport);
     srcRect.h = rectGetHeight(&viewport);
-    SDL_RenderCopy(gSdlRenderer, gSdlTexture, &srcRect, NULL);
+
+    // CE: The game is usually scaled by a non-integer factor. Nearest
+    // neighbour scaling makes pixels uneven in size, and linear scaling is
+    // blurry. Instead scale up by the next integer factor with nearest
+    // neighbour, and then scale the result down to the output size with linear
+    // filtering. This gives evenly sized pixels with sharp edges.
+    SDL_Texture* scaledTexture = NULL;
+
+    int outputWidth;
+    int outputHeight;
+    if (SDL_GetRendererOutputSize(gSdlRenderer, &outputWidth, &outputHeight) == 0) {
+        // Logical size preserves aspect ratio, so the smallest ratio wins.
+        int factor = 1;
+        while (srcRect.w * factor < outputWidth && srcRect.h * factor < outputHeight) {
+            factor++;
+        }
+
+        bool exact = srcRect.w * factor == outputWidth || srcRect.h * factor == outputHeight;
+        if (factor > 1 && !exact) {
+            scaledTexture = getScaledTexture(srcRect.w * factor, srcRect.h * factor);
+        }
+    }
+
+    if (scaledTexture != NULL && SDL_SetRenderTarget(gSdlRenderer, scaledTexture) == 0) {
+        SDL_RenderCopy(gSdlRenderer, gSdlTexture, &srcRect, NULL);
+        SDL_SetRenderTarget(gSdlRenderer, NULL);
+        SDL_RenderCopy(gSdlRenderer, scaledTexture, NULL, NULL);
+    } else {
+        SDL_RenderCopy(gSdlRenderer, gSdlTexture, &srcRect, NULL);
+    }
+
     SDL_RenderPresent(gSdlRenderer);
+}
+
+// Returns render target of the specified size, or `NULL` if it's not
+// available.
+static SDL_Texture* getScaledTexture(int width, int height)
+{
+    if (gSdlScaledTexture != NULL
+        && gSdlScaledTextureWidth == width
+        && gSdlScaledTextureHeight == height) {
+        return gSdlScaledTexture;
+    }
+
+    if (gSdlScaledTexture != NULL) {
+        SDL_DestroyTexture(gSdlScaledTexture);
+        gSdlScaledTexture = NULL;
+    }
+
+    if (!SDL_RenderTargetSupported(gSdlRenderer)) {
+        return NULL;
+    }
+
+    SDL_RendererInfo info;
+    if (SDL_GetRendererInfo(gSdlRenderer, &info) != 0) {
+        return NULL;
+    }
+
+    if ((info.max_texture_width != 0 && width > info.max_texture_width)
+        || (info.max_texture_height != 0 && height > info.max_texture_height)) {
+        return NULL;
+    }
+
+    gSdlScaledTexture = SDL_CreateTexture(gSdlRenderer, SDL_PIXELFORMAT_RGB888, SDL_TEXTUREACCESS_TARGET, width, height);
+    if (gSdlScaledTexture == NULL) {
+        return NULL;
+    }
+
+    SDL_SetTextureScaleMode(gSdlScaledTexture, SDL_ScaleModeLinear);
+    gSdlScaledTextureWidth = width;
+    gSdlScaledTextureHeight = height;
+
+    return gSdlScaledTexture;
 }
 
 void svga_set_viewport(const Rect* rect)
