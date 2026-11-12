@@ -2027,6 +2027,18 @@ void tile_update_bounds_base()
     geometric_center_x += 16;
     geometric_center_y += 8;
 
+    if (min_x > max_x || min_y > max_y) {
+        // There are no scroll blockers (map is not loaded yet, or it does not
+        // have any). Use bounds that are large enough to be never reached, but
+        // small enough to avoid integer overflows in the math that follows.
+        const int kUnbounded = 1000000;
+        tile_bounds_left_off = -kUnbounded;
+        tile_bounds_top_off = -kUnbounded;
+        tile_bounds_right_off = kUnbounded;
+        tile_bounds_bottom_off = kUnbounded;
+        return;
+    }
+
     tile_bounds_left_off = min_x - geometric_center_x;
     tile_bounds_top_off = min_y - geometric_center_y;
     tile_bounds_right_off = max_x - geometric_center_x;
