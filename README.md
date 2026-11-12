@@ -4,6 +4,29 @@ Fallout Community Edition is a fully working re-implementation of Fallout, with 
 
 There is also [Fallout 2 Community Edition](https://github.com/alexbatalov/fallout2-ce).
 
+## Changes in this fork
+
+This fork of [alexbatalov/fallout1-ce](https://github.com/alexbatalov/fallout1-ce) adds the following fixes and improvements. They were developed and tested on macOS (Apple Silicon); the bug fixes apply to all platforms.
+
+Bug fixes:
+
+- **Crash when combat starts.** `ai_find_attackers` read an uninitialized value, which let the compiler drop a null check in `ai_danger_source`. Any critter that had not been hit yet could crash the game when a fight began.
+- **Corrupted movies.** The movie decoder truncated the offset of the block it copies from the previous frame to 8 bits, so blocks were copied from the wrong place.
+- **Integer overflow in map scroll bounds** on maps without scroll blockers (found with UBSan).
+- **Blank delay on startup.** A second-long fade speed measurement on a blank screen is gone, and the window is now serviced during fades, so the splash screen is actually visible instead of a black screen until the first movie.
+
+Display:
+
+- **Widescreen.** In fullscreen the configured resolution is extended to match the display's aspect ratio, so the game fills the screen instead of showing black bars. Add `WIDESCREEN=0` to the `[MAIN]` section of `f1_res.ini` to turn this off.
+- **Fullscreen 640x480 screens.** The splash screen, movies, main menu and character selector are scaled up to fill the display when the game runs at a higher resolution. Movies zoom in to the movie frame, with subtitles rendered right below it.
+- **Sharper scaling.** The picture is scaled with evenly sized pixels and sharp edges, instead of uneven nearest neighbour scaling.
+- **App switching on macOS.** Fullscreen is borderless at desktop resolution, so Cmd+Tab works and other apps can come to front.
+
+Building and running:
+
+- **SDL 2.32.10**, which configures with current CMake without workarounds. Delete an existing build folder before rebuilding.
+- **`FALLOUT_CE_DATA_DIR`** environment variable points the game to the game data folder, so it can be run straight from a build folder (macOS and Linux).
+
 ## Installation
 
 You must own the game to play. Purchase your copy on [GOG](https://www.gog.com/game/fallout) or [Steam](https://store.steampowered.com/app/38400). Download latest [release](https://github.com/alexbatalov/fallout1-ce/releases) or build from source. You can also check latest [debug](https://github.com/alexbatalov/fallout1-ce/actions) build intended for testers.
