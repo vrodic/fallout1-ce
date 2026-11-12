@@ -193,9 +193,9 @@ int gmovie_play(int game_movie, int game_movie_flags)
 
     moviefx_start(movieFilePath);
 
-    // CE: Movie frames are smaller than the movie window. Zoom in to the frame
-    // unless there are subtitles, which are rendered below it.
-    movieSetZoomToFrame(!subtitlesEnabled);
+    // CE: Movie frames are smaller than the movie window, zoom in to the
+    // frame (and subtitles below it, if any).
+    movieSetZoomToFrame(true);
 
     movieRun(win, movieFilePath);
 

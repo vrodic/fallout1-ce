@@ -249,6 +249,16 @@ static bool movieRead(void* handle, void* buf, int count)
 // CE: See `movieSetZoomToFrame`.
 static bool movieZoomToFrame = false;
 
+// CE: Height of the area below the movie frame reserved for subtitles when
+// zoomed in to the frame, or 0 if there are no subtitles.
+static int subtitleZoomH = 0;
+
+// CE: Number of subtitle lines that fit below the zoomed movie frame.
+#define SUBTITLE_ZOOM_LINES 3
+
+// CE: Gap between the movie frame and subtitles when zoomed in to the frame.
+#define SUBTITLE_ZOOM_GAP 6
+
 void movieSetZoomToFrame(bool enabled)
 {
     movieZoomToFrame = enabled;
@@ -329,6 +339,13 @@ static void movie_MVE_ShowFrame(SDL_Surface* surface, int srcWidth, int srcHeigh
         frameRect.uly = destRect.y;
         frameRect.lrx = destRect.x + srcWidth - 1;
         frameRect.lry = destRect.y + srcHeight - 1;
+
+        // Make room for subtitles, which are rendered right below the frame.
+        frameRect.lry += subtitleZoomH;
+        if (frameRect.lry > winRect.lry) {
+            frameRect.lry = winRect.lry;
+        }
+
         svga_set_viewport(&frameRect);
     }
 
@@ -704,6 +721,7 @@ static void openSubtitle(char* filePath)
 {
     subtitleW = win_width(GNWWin);
     subtitleH = text_height() + 4;
+    subtitleZoomH = 0;
 
     if (subtitleFilenameFunc != NULL) {
         filePath = subtitleFilenameFunc(filePath);
@@ -767,6 +785,10 @@ static void openSubtitle(char* filePath)
 
     db_fclose(stream);
 
+    if (movieZoomToFrame && subtitleList != NULL) {
+        subtitleZoomH = SUBTITLE_ZOOM_GAP + SUBTITLE_ZOOM_LINES * text_height() + SUBTITLE_ZOOM_GAP;
+    }
+
     debug_printf("Read %d subtitles\n", subtitleCount);
 }
 
@@ -788,6 +810,24 @@ static void doSubtitle()
         subtitleH = windowGetYres() - v2;
     }
 
+    int subtitleX = 0;
+    int subtitleY = v2;
+    int subtitleWidth = subtitleW;
+    int subtitleHeight = subtitleH;
+
+    // CE: When zoomed in to the movie frame, only the frame and the area right
+    // below it are visible. Keep subtitles there, wrapped to the frame width.
+    if (movieZoomToFrame && subtitleZoomH != 0) {
+        subtitleX = lastMovieX;
+        subtitleY = lastMovieY + lastMovieBH + SUBTITLE_ZOOM_GAP;
+        subtitleWidth = lastMovieBW;
+        subtitleHeight = subtitleZoomH - SUBTITLE_ZOOM_GAP;
+
+        if (subtitleY + subtitleHeight > win_height(GNWWin)) {
+            subtitleHeight = win_height(GNWWin) - subtitleY;
+        }
+    }
+
     int frame;
     int dropped;
     _MVE_rmFrameCounts(&frame, &dropped);
@@ -799,7 +839,7 @@ static void doSubtitle()
 
         MovieSubtitleListNode* next = subtitleList->next;
 
-        win_fill(GNWWin, 0, v2, subtitleW, subtitleH, 0);
+        win_fill(GNWWin, subtitleX, subtitleY, subtitleWidth, subtitleHeight, 0);
 
         int oldFont;
         if (subtitleFont != -1) {
@@ -808,13 +848,13 @@ static void doSubtitle()
         }
 
         int colorIndex = (subtitleR << 10) | (subtitleG << 5) | subtitleB;
-        windowWrapLine(GNWWin, subtitleList->text, subtitleW, subtitleH, 0, v2, colorTable[colorIndex] | 0x2000000, TEXT_ALIGNMENT_CENTER);
+        windowWrapLine(GNWWin, subtitleList->text, subtitleWidth, subtitleHeight, subtitleX, subtitleY, colorTable[colorIndex] | 0x2000000, TEXT_ALIGNMENT_CENTER);
 
         Rect rect;
-        rect.lrx = subtitleW;
-        rect.uly = v2;
-        rect.lry = v2 + subtitleH;
-        rect.ulx = 0;
+        rect.lrx = subtitleX + subtitleWidth;
+        rect.uly = subtitleY;
+        rect.lry = subtitleY + subtitleHeight;
+        rect.ulx = subtitleX;
         win_draw_rect(GNWWin, &rect);
 
         myfree(subtitleList->text, __FILE__, __LINE__); // "..\\int\\MOVIE.C", 1108
