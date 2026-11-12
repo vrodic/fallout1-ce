@@ -29,23 +29,14 @@ void palette_init()
     memset(white_palette, 63, 256 * 3);
     memcpy(current_palette, cmap, 256 * 3);
 
-    unsigned int tick = get_time();
-    if (gsound_background_is_enabled() || gsound_speech_is_enabled()) {
-        colorSetFadeBkFunc(soundUpdate);
-    }
+    // CE: The original code measures how long it takes to perform 60 fade
+    // steps (on a blank screen) to calculate the number of steps needed for a
+    // fade of about 700 ms. Fading is throttled to 60 steps per second (see
+    // `fadeSystemPalette`), so this measurement is a second-long delay at
+    // startup with a known result.
+    fade_steps = 700 / (1000 / 60);
 
-    fadeSystemPalette(current_palette, current_palette, 60);
-
-    colorSetFadeBkFunc(NULL);
-
-    // Actual fade duration will never be 0 since |fadeSystemPalette| uses
-    // frame rate throttling.
-    unsigned int actualFadeDuration = elapsed_time(tick);
-
-    // Calculate fade steps needed to perform fading in about 700 ms.
-    fade_steps = 60 * 700 / actualFadeDuration;
-
-    debug_printf("\nFade time is %u\nFade steps are %d\n", actualFadeDuration, fade_steps);
+    debug_printf("\nFade steps are %d\n", fade_steps);
 }
 
 // 0x485160

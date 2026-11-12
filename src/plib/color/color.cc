@@ -224,6 +224,12 @@ void fadeSystemPalette(unsigned char* oldPalette, unsigned char* newPalette, int
 
         setSystemPalette(palette);
         renderPresent();
+
+        // CE: Keep the window responsive during fades. This is also required
+        // for the window to appear on screen during startup (the first fade
+        // happens before the game starts processing events).
+        SDL_PumpEvents();
+
         sharedFpsLimiter.throttle();
     }
 
