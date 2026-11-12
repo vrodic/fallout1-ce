@@ -52,6 +52,21 @@ int main(int argc, char* argv[])
     SDL_free(basePath);
 #endif
 
+#if !_WIN32 && !__ANDROID__ && !(__APPLE__ && TARGET_OS_IOS)
+    // CE: Allows running the game from a build folder without copying it next
+    // to the game data.
+    const char* dataDir = getenv("FALLOUT_CE_DATA_DIR");
+    if (dataDir != NULL && *dataDir != '\0') {
+        if (chdir(dataDir) != 0) {
+            SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR,
+                "Fallout Community Edition",
+                "Unable to open the folder specified in FALLOUT_CE_DATA_DIR.",
+                NULL);
+            return 1;
+        }
+    }
+#endif
+
 #if __ANDROID__
     SDL_SetHint(SDL_HINT_MOUSE_TOUCH_EVENTS, "0");
     SDL_SetHint(SDL_HINT_TOUCH_MOUSE_EVENTS, "0");
