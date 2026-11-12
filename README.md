@@ -95,6 +95,10 @@ SCR_HEIGHT=720
 WINDOWED=1
 ```
 
+On macOS fullscreen mode is borderless and the game is scaled to the display. By default the size above is extended to match display's aspect ratio (widescreen). Add `WIDESCREEN=0` to `[MAIN]` section to keep the exact size and get black bars instead.
+
+To run the game from a different folder than the one containing game data (for example, straight from a build folder), set `FALLOUT_CE_DATA_DIR` environment variable to the game data folder (macOS and Linux).
+
 Recommendations:
 - **Desktops**: Use any size you see fit.
 - **Tablets**: Set these values to logical resolution of your device, for example iPad Pro 11 is 1668x2388 (pixels), but it's logical resolution is 834x1194 (points).
