@@ -533,7 +533,9 @@ static int ai_find_attackers(Object* critter, Object** a2, Object** a3, Object**
         *a3 = NULL;
     }
 
-    if (*a4 != NULL) {
+    // CE: Original code checks `*a4`, which reads an uninitialized value in
+    // `ai_danger_source` (undefined behaviour, miscompiled by clang).
+    if (a4 != NULL) {
         *a4 = NULL;
     }
 
